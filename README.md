@@ -17,9 +17,9 @@
 
   | File | Description |
   |------|-------------|
-  | `invoice-agent-no-hitl.json` | Fully automated flow |
-  | `invoice-agent-with-hitl.json` | Includes Slack approval step |
-  | `error-handler.json` | Error notifications to Slack |
+  | `workflows/1-invoice-agent-no-hitl.json` | Fully automated flow |
+  | `workflows/2-invoice-agent-with-hitl.json` | Includes Slack approval step |
+  | `workflows/3-error-handler.json` | Error notifications to Slack |
 
   ## Flowcharts
 
@@ -30,7 +30,7 @@
 
   - **Orchestration:** n8n
   - **AI Model:** Claude Sonnet 4.5 (Anthropic)
-  - **Database:** MySQL (Railway)
+  - **Database:** [MySQL on Railway](https://railway.app)
   - **Notifications:** Slack Block Kit
   - **Email:** Gmail API
 
@@ -46,7 +46,10 @@
   ## Setup
 
   1. Import workflow JSONs into n8n
-  2. Configure credentials (Gmail, Slack, MySQL, Anthropic)
-  3. Create `po_data` table in MySQL
-  4. Test with sample invoices in `/test-invoices`
-
+  2. Configure credentials:
+     - Gmail OAuth
+     - Slack OAuth
+     - [MySQL on Railway](https://railway.app)
+     - Anthropic API
+  3. Create `po_data` table using [`database/schema.sql`](database/schema.sql)
+  4. Test with sample invoice PDFs
