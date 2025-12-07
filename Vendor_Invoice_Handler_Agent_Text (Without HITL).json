@@ -1,0 +1,884 @@
+{
+  "name": "Vendor_Invoice_Handler_Agent_Text (Without HITL)",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "allowFileUploads": true,
+          "allowedFilesMimeTypes": "*.pdf",
+          "responseMode": "responseNodes"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        7184,
+        3648
+      ],
+      "id": "cd54ddcf-590e-4957-9997-1650dee6f0ea",
+      "name": "When chat message received",
+      "webhookId": "cdfd6f6d-15f0-4a28-996d-8a31bae45b61"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "readStatus": "unread",
+          "sender": "yoavmalihi@gmail.com"
+        },
+        "options": {
+          "dataPropertyAttachmentsPrefixName": "attachment_",
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        7184,
+        3840
+      ],
+      "id": "765a7a78-335e-4cc7-a132-d3fb66c06a9b",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "isZFcvv1FJUf3ifi",
+          "name": "amitm1630"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "5e4b06fa-321f-461c-9982-cbeef1da17e7",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        7184,
+        3456
+      ],
+      "id": "1d7084f4-aa8c-404e-b085-00f3f09e274a",
+      "name": "Webhook",
+      "webhookId": "5e4b06fa-321f-461c-9982-cbeef1da17e7"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.files?.[0]?.fileName || $binary.data0?.fileName || $binary.attachment_0.fileName}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "aff20343-6002-4dc9-a5a8-bfa2252749ce"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Attachments Exist"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "No Attachments"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        7408,
+        3648
+      ],
+      "id": "e178e3ac-0786-4cbe-a7ab-f528ae43e2fc",
+      "name": "Checking for Attachments"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "={{ $binary.files?.[0] ? 'files.0' : ($binary.data0 ? 'data0' : 'attachment_0') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        7632,
+        3584
+      ],
+      "id": "57b8d292-aabe-4562-86fd-8b0bf3385e97",
+      "name": "Extract text from invoice"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a29980e1-3da8-4938-bec6-37439d66d70e",
+              "name": "email_text",
+              "value": "={{\n    $('When chat message received').isExecuted ? $('When chat message received').first().json.chatInput :\n    $('Gmail Trigger').isExecuted ? ($('Gmail Trigger').first().json.text || $('Gmail Trigger').first().json.snippet) :\n    $('Webhook').isExecuted ? ($('Webhook').first().json.body?.text || $('Webhook').first().json.text || $('Webhook').first().json.message) :\n    ''\n  }}\n",
+              "type": "string"
+            },
+            {
+              "id": "4d8fb777-3854-4008-b410-36360751d4b3",
+              "name": "attachment_text",
+              "value": "={{ $('Extract text from invoice').isExecuted ? $('Extract text from invoice').first().json.text : '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        7856,
+        3648
+      ],
+      "id": "2d661e97-bc17-4a81-9412-d54e0926bfea",
+      "name": "Content Assembler"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-5-20250929",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {
+          "maxTokensToSample": 4096,
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        7968,
+        3856
+      ],
+      "id": "8da6c91f-c29c-4dd3-801b-4f5d9aeedf3b",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "TNgT7UEIvb9HfKvk",
+          "name": "Amit's Claude"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=email text:  {{ $json.email_text }}\n\ninvoice_pdf_text: {{ $json.attachment_text }}",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=<role>\n  You are an Invoice Processing Agent for monday.com's Finance department. You autonomously process vendor invoices, validate purchase orders against the company database, and generate appropriate responses.\n  </role>\n\n  <reasoning_approach>\n  You MUST use ReAct (Reasoning and Acting) methodology:\n\n  **Thought**: Analyze what you know and what you need to find out\n  **Action**: Call a tool to get information\n  **Observation**: Review the tool's response\n  **Thought**: Reason about what the observation means\n  ... repeat until you have enough information ...\n  **Final Answer**: Provide your complete response\n\n  ALWAYS think step-by-step and ALWAYS use the validate_invoice tool when a PO number is present.\n  </reasoning_approach>\n\n  <input_format>\n  You will receive two fields:\n  - email_text: The vendor's email message or chat input\n  - attachment_text: Extracted text from an attached PDF invoice (may be empty)\n\n  Analyze BOTH fields to extract complete invoice information.\n  </input_format>\n\n  <task_sequence>\n  Execute these steps using ReAct:\n\n  **Thought**: I need to extract key information from the email and attachment.\n  - Extract: Vendor name, Invoice number, PO number, Amount, Currency, Intent\n\n  **Thought**: I have a PO number. I MUST call the validate_invoice tool to check if it exists and get the remaining balance.\n  **Action**: Call validate_invoice with po_number = \"[extracted PO]\"\n  **Observation**: [Tool returns data or empty result]\n\n  **Thought**: Based on the tool response, I will determine the status:\n  - Empty result → invalid_po\n  - PO found, invoice_amount <= po_remaining → approved  \n  - PO found, invoice_amount > po_remaining → insufficient_balance\n  - No PO number provided → missing_po (skip tool call)\n\n  **Final Answer**: Generate the complete response with all required sections.\n  </task_sequence>\n\n  <tools>\n  ### validate_invoice\n  Queries the MySQL database to retrieve Purchase Order data.\n\n  **IMPORTANT**: You MUST call this tool when a PO number is present in the invoice.\n\n  **How to Call**:\n  Provide the variable `po_number` with the PO number from the invoice.\n\n  Example:\n  po_number: \"PO-1001\"\n\n  **SQL Query Executed**:\n  SELECT tranid, approvalstatus, po_remaining, item_display\n  FROM po_data\n  WHERE tranid = \"[po_number]\"\n\n  **Returns**:\n  - If PO found: rows with tranid, approvalstatus, po_remaining, item_display\n  - If PO not found: Empty result / no rows\n\n  **Valid PO Format**: PO-XXXX (e.g., PO-1000, PO-1001, ... PO-1007)\n  </tools>\n\n<item_display_handling>\n  The tool may return multiple rows with different item_display values for the same PO.\n\n  After getting tool results:\n  1. Check if ANY of the returned item_display values match the invoice line items\n  2. If match found → include the matching item_display in output\n  3. If NO match found → set item_display to \"No match on item name\"\n\n  This is informational only - it does NOT affect the validation_status. A PO can still be approved even if item names do not match exactly.\n  </item_display_handling>\n\n  <decision_logic>\n  1. Tool returned empty result → status = \"invalid_po\"\n     - The PO number does not exist in our system\n  2. Tool returned data, invoice_amount <= po_remaining → status = \"approved\"\n     - PO is valid and has sufficient balance\n  3. Tool returned data, invoice_amount > po_remaining → status = \"insufficient_balance\"\n     - Calculate: shortfall = invoice_amount - po_remaining\n  4. No PO number on invoice → status = \"missing_po\"\n     - Do not call the tool, ask vendor for PO number\n  </decision_logic>\n\n  <output_format>\n  Respond with ONLY a single JSON object. Do NOT repeat the output. Send it exactly ONCE.\n\n  {\n    \"vendor\": \"\",\n    \"invoice_number\": \"\",\n    \"po_number\": \"\",\n    \"amount\": 0,\n    \"currency\": \"\",\n    \"validation_status\": \"\",\n    \"action_taken\": \"\",\n    \"po_remaining\": 0,\n    \"shortfall\": 0,\n    \"item_display\": \"\",\n    \"email_subject\": \"\",\n    \"email_body\": \"\",\n    \"summary\": \"\"\n  }\n\n  IMPORTANT:\n  - No markdown\n  - No tables\n  - No headers\n  - No code blocks\n  - ONLY the JSON object\n  - Output the JSON exactly ONCE - do not repeat it\n  </output_format>\n\n\n  <response_templates>\n  MISSING_PO:\n  - email_subject: \"PO Number Required - Invoice [Invoice#]\"\n  - email_body: \"Dear [Vendor],\\n\\nThank you for submitting invoice [Invoice#] for [Amount].\\n\\nTo process your payment, we require a valid Purchase Order (PO) number. Please reply with the PO number associated with this invoice.\\n\\nBest\n   regards,\\nmonday.com Finance Team\"\n\n  INVALID_PO:\n  - email_subject: \"PO Number Not Found - Invoice [Invoice#]\"\n  - email_body: \"Dear [Vendor],\\n\\nWe received invoice [Invoice#] referencing PO [PO#]. Unfortunately, this PO number was not found in our system.\\n\\nPlease verify the PO number and resubmit, or contact your monday.com representative for\n   assistance.\\n\\nBest regards,\\nmonday.com Finance Team\"\n\n  INSUFFICIENT_BALANCE:\n  - email_subject: \"Insufficient PO Balance - Invoice [Invoice#]\"\n  - email_body: \"Dear [Vendor],\\n\\nWe received invoice [Invoice#] for [Amount] against PO [PO#].\\n\\nThe remaining balance on this PO is [Remaining], which is insufficient by [Shortfall].\\n\\nPlease advise how you would like to \n  proceed:\\n1. Split the invoice to match available balance\\n2. Provide an alternative PO number\\n3. Request a PO amendment from your monday.com contact\\n\\nBest regards,\\nmonday.com Finance Team\"\n\n  APPROVED:\n - email_subject: \"Invoice Approved - [Invoice#]\" (use invoice number if available, otherwise use PO number)  - email_body: \"Dear [Vendor],\\n\\nYour invoice [Invoice# or 'submission'] for [Amount] has been validated against PO [PO#] and approved for processing.\\n\\nPayment will be issued according to the agreed terms.\\n\\nThank you for your\n  business.\\n\\nBest regards,\\nmonday.com Finance Team\n  </response_templates>\n\n  <critical_rules>\n  1. ALWAYS use ReAct reasoning (Thought → Action → Observation)\n  2. ALWAYS call validate_invoice tool when PO number exists\n  3. NEVER skip the tool call - you need the database to validate\n  4. NEVER invent or guess PO data - only use tool results\n  5. If tool returns empty, the PO is invalid - do not assume otherwise\n  </critical_rules>\n",
+          "maxIterations": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        8144,
+        3648
+      ],
+      "id": "8fd4e37c-5b75-40d6-9f37-2507b6138771",
+      "name": "Invoice AI Agent",
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"vendor\": {\n        \"type\": \"string\",\n        \"description\": \"Vendor name from the invoice\"\n      },\n      \"invoice_number\": {\n        \"type\": \"string\",\n        \"description\": \"Invoice number\"\n      },\n      \"po_number\": {\n        \"type\": \"string\",\n        \"description\": \"PO number or 'Not Provided'\"\n      },\n      \"amount\": {\n        \"type\": [\"number\", \"string\"],\n        \"description\": \"Invoice amount\"\n      },\n      \"currency\": {\n        \"type\": \"string\",\n        \"description\": \"Currency code (USD, EUR, ILS)\"\n      },\n      \"validation_status\": {\n        \"type\": \"string\",\n        \"description\": \"Result: approved, missing_po, invalid_po, or insufficient_balance\"\n      },\n      \"action_taken\": {\n        \"type\": \"string\",\n        \"description\": \"What action was taken\"\n      },\n      \"po_remaining\": {\n        \"type\": [\"number\", \"string\"],\n        \"description\": \"Remaining balance on the PO or 0\"\n      },\n      \"shortfall\": {\n        \"type\": [\"number\", \"string\"],\n        \"description\": \"Shortfall amount or 0\"\n      },\n      \"item_display\": {\n        \"type\": \"string\",\n        \"description\": \"Matching item name or 'No match on item name' or 'No PO provided'\"\n      },\n      \"email_subject\": {\n        \"type\": \"string\",\n        \"description\": \"Subject line for the email reply\"\n      },\n      \"email_body\": {\n        \"type\": \"string\",\n        \"description\": \"Body of the email reply to vendor\"\n      },\n      \"summary\": {\n        \"type\": \"string\",\n        \"description\": \"Brief summary of what happened and action taken\"\n      }\n    }\n  }",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        8336,
+        3872
+      ],
+      "id": "dfce3bfc-269b-4bda-9e53-e42dffa9ffab",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Execute a SQL query in MySQL for retrieving relevant rows for the PO. ",
+        "operation": "executeQuery",
+        "query": "SELECT tranid, approvalstatus, po_remaining, item_display\n  FROM po_data\n  WHERE tranid = '{{ $fromAI(\"po_number\", \"The PO number to look up\", \"string\") }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySqlTool",
+      "typeVersion": 2.5,
+      "position": [
+        8208,
+        3872
+      ],
+      "id": "8894efc1-2840-4157-bc3a-5712b7157cb9",
+      "name": "Execute a SQL query in MySQL",
+      "credentials": {
+        "mySql": {
+          "id": "WKelILWcB4tDxCHZ",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "437bbc96-21e8-4aff-b4f7-81be86cc5add",
+      "name": "GPT-4o-mini (Parser Fixer)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        8416,
+        4080
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "Lfd2J3ma8JwReIuY",
+          "name": "Amit's ChatGPT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://httpbin.org/post",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=  {\n    \"mock_endpoint\": \"https://test_id.suitetalk.api.netsuite.com/services/rest/record/v1/vendorBill\",\n    \"request_payload\": {\n      \"entity\": {\n        \"id\": \"{{ $('Invoice AI Agent').item.json.output.vendor }}\"\n      },\n      \"tranDate\": \"{{ $now.format('yyyy-MM-dd') }}\",\n      \"memo\": \"Invoice {{ $('Invoice AI Agent').item.json.output.invoice_number }} - Auto-processed by AI Agent\",\n      \"subsidiary\": {\n        \"id\": \"1\"\n      },\n      \"purchaseOrder\": {\n        \"refNumber\": \"{{ $('Invoice AI Agent').item.json.output.po_number }}\"\n      },\n      \"amount\":{{ $('Invoice AI Agent').item.json.output.amount }} ,\n      \"currency\": \"{{ $('Invoice AI Agent').item.json.output.currency }}\",\n      \"externalId\": \"AP-{{ $('Invoice AI Agent').item.json.output.invoice_number }}-{{ $now.toMillis() }}\"\n    },\n    \"mock_response\": {\n      \"success\": true,\n      \"id\": \"{{ Math.floor(Math.random() * 100000) }}\",\n      \"refNumber\": \"VNDBILL-{{ $now.toMillis() }}\",\n      \"status\": \"pending_approval\"\n    }\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        8928,
+        3584
+      ],
+      "id": "323c22c5-208a-4678-a778-3a28054cecb9",
+      "name": "NetSuite VendorBill mock request"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "n8n_demo",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={{ JSON.stringify({\n    \"blocks\": [\n      {\n        \"type\": \"header\",\n        \"text\": {\n          \"type\": \"plain_text\",\n          \"text\": \"📧 New Invoice Received\",\n          \"emoji\": true\n        }\n      },\n      {\n        \"type\": \"divider\"\n      },\n      {\n        \"type\": \"section\",\n        \"fields\": [\n          {\n            \"type\": \"mrkdwn\",\n            \"text\": `*Vendor Name:*\\n${$('Invoice AI Agent').item.json.output.vendor}`\n          },\n          {\n            \"type\": \"mrkdwn\",\n            \"text\": `*PO Number:*\\n${$('Invoice AI Agent').item.json.output.po_number}`\n          },\n          {\n            \"type\": \"mrkdwn\",\n            \"text\": `*Amount:*\\n${$('Invoice AI Agent').item.json.output.amount} ${$('Invoice AI Agent').item.json.output.currency}`\n          },\n          {\n            \"type\": \"mrkdwn\",\n            \"text\": `*PO Remaining:*\\n${$('Invoice AI Agent').item.json.output.po_number === 'Not Provided' ? 'N/A' : ($('Invoice AI Agent').item.json.output.po_remaining - $('Invoice AI Agent').item.json.output.amount)}`\n          },\n          {\n            \"type\": \"mrkdwn\",\n            \"text\": `*Status:*\\n${$('Invoice AI Agent').item.json.output.validation_status}`\n          },\n          {\n            \"type\": \"mrkdwn\",\n            \"text\": `*Shortfall:*\\n${$('Invoice AI Agent').item.json.output.shortfall > 0 ? $('Invoice AI Agent').item.json.output.shortfall : 'None'}`\n          }\n        ]\n      },\n      {\n        \"type\": \"divider\"\n      },\n      {\n        \"type\": \"section\",\n        \"text\": {\n          \"type\": \"mrkdwn\",\n          \"text\": `*Summary:*\\n${$('Invoice AI Agent').item.json.output.summary}`\n        }\n      },\n      {\n        \"type\": \"divider\"\n      },\n      {\n        \"type\": \"section\",\n        \"text\": {\n          \"type\": \"mrkdwn\",\n          \"text\": `*📝 ${$('Gmail Trigger').isExecuted ? 'Draft Email Created' : 'Email Response Generated'}*`\n        }\n      },\n      {\n        \"type\": \"section\",\n        \"text\": {\n          \"type\": \"mrkdwn\",\n          \"text\": `*Subject:*\\n${$('Invoice AI Agent').item.json.output.email_subject}`\n        }\n      },\n      {\n        \"type\": \"section\",\n        \"text\": {\n          \"type\": \"mrkdwn\",\n          \"text\": `*Body:*\\n${$('Invoice AI Agent').item.json.output.email_body}`\n        }\n      }\n    ].concat($('Gmail Trigger').isExecuted ? [\n      {\n        \"type\": \"divider\"\n      },\n      {\n        \"type\": \"actions\",\n        \"elements\": [\n          {\n            \"type\": \"button\",\n            \"text\": {\n              \"type\": \"plain_text\",\n              \"text\": \"✉️ Open Gmail Draft\",\n              \"emoji\": true\n            },\n            \"style\": \"primary\",\n            \"url\": `https://mail.google.com/mail/u/0/#drafts/${$('Create a draft').item.json.id}`\n          }\n        ]\n      }\n    ] : [])\n  }) }}",
+        "text": "New Invoice Notification 🧾",
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        10112,
+        3648
+      ],
+      "id": "2a5e1a99-42bb-46be-aa54-24d951936efb",
+      "name": "Sending message to finance team's slack channel for approval",
+      "webhookId": "98945c93-26c9-49a7-8f3b-31a438278869",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "HFAHHjLCYyGwNMuY",
+          "name": "My Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $('Invoice AI Agent').item.json.output.email_subject }}",
+        "message": "={{ $('Invoice AI Agent').item.json.output.email_body }}",
+        "options": {
+          "ccList": "amitm1630@gmail.com",
+          "sendTo": "={{ $('Gmail Trigger').item.json.from.value[0].address }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        9600,
+        3456
+      ],
+      "id": "e0f4937e-e3a2-44dc-8224-57ae47b17196",
+      "name": "Create a draft",
+      "webhookId": "51431fb5-fe1f-44af-a40e-c57781db7b37",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "isZFcvv1FJUf3ifi",
+          "name": "amitm1630"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "message": "={{ $('Invoice AI Agent').item.json.output.email_subject }}\n\n\n{{ $('Invoice AI Agent').item.json.output.email_body }}",
+        "waitUserReply": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1,
+      "position": [
+        9824,
+        3664
+      ],
+      "id": "c273ff0e-779b-4b00-8238-1ad70bf818df",
+      "name": "Respond to Chat"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"Subject\": $('Invoice AI Agent').item.json.output.email_subject, \"Body\": $('Invoice AI Agent').item.json.output.email_body } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "content-type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        9824,
+        3840
+      ],
+      "id": "5f5a2bca-cd92-4ae1-8aa7-24f007c44f6f",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $if($('Gmail Trigger').isExecuted, $('Gmail Trigger').item.json.id, '') }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        9824,
+        3456
+      ],
+      "id": "fdcaa8ae-e4a9-4b75-a0af-69ee4fec414a",
+      "name": "Mark a message as read",
+      "webhookId": "6a7c896e-d004-46c1-9679-a381b558723e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "isZFcvv1FJUf3ifi",
+          "name": "amitm1630"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        7184,
+        4176
+      ],
+      "id": "34a1c6b4-51bb-49e1-ac77-f9e20cdde796",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "markAsUnread",
+        "messageId": "19aeec4b59099aca"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        7408,
+        4176
+      ],
+      "id": "45988fc8-4a57-45d0-a10b-a045ec666571",
+      "name": "Mark a message as unread",
+      "webhookId": "2f535e69-4aec-448c-b5cf-28e3de2fca98",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "isZFcvv1FJUf3ifi",
+          "name": "amitm1630"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $if($('Gmail Trigger').isExecuted, $('Gmail Trigger').item.json.id, '') }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    },
+                    "id": "38ecacfe-0ea1-47e0-8c0e-690a9e356324"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Email Trigger"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f0b6bdd2-0c77-49fe-8e9c-ba6b2d7fd6b3",
+                    "leftValue": "={{ $if($('When chat message received').isExecuted, $('When chat message received').item.json.chatInput, '') }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Chat trigger"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "47b4d6fe-6542-4f59-821b-62d5d850c5bf",
+                    "leftValue": "={{ $if($('Webhook').isExecuted, $('Webhook').item.json.headers.host, '') }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Webhook trigger"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        9376,
+        3648
+      ],
+      "id": "9365e1d7-652e-40c1-ac37-66d42d190abd",
+      "name": "Choose reply route based on trigger"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.validation_status }}",
+                    "rightValue": "approved",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "7a1bcdcc-e431-4c20-89f5-ce2ba7be81d5"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Approved"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        8704,
+        3648
+      ],
+      "id": "5d771baf-771b-4374-84da-9afecdf19640",
+      "name": "Invoice Approved || Declined"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.1",
+          "mode": "list",
+          "cachedResultName": "gpt-5.1"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.1,
+          "reasoningEffort": "medium"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        8080,
+        3872
+      ],
+      "id": "eb9eaa6c-9ce5-4065-9c3d-5ea8da4fe40a",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Lfd2J3ma8JwReIuY",
+          "name": "Amit's ChatGPT"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Checking for Attachments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Checking for Attachments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Checking for Attachments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checking for Attachments": {
+      "main": [
+        [
+          {
+            "node": "Extract text from invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Content Assembler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract text from invoice": {
+      "main": [
+        [
+          {
+            "node": "Content Assembler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content Assembler": {
+      "main": [
+        [
+          {
+            "node": "Invoice AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Invoice AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Invoice AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query in MySQL": {
+      "ai_tool": [
+        [
+          {
+            "node": "Invoice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Invoice Approved || Declined",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o-mini (Parser Fixer)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NetSuite VendorBill mock request": {
+      "main": [
+        [
+          {
+            "node": "Choose reply route based on trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sending message to finance team's slack channel for approval": {
+      "main": [
+        []
+      ]
+    },
+    "Create a draft": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Chat": {
+      "main": [
+        [
+          {
+            "node": "Sending message to finance team's slack channel for approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Sending message to finance team's slack channel for approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read": {
+      "main": [
+        [
+          {
+            "node": "Sending message to finance team's slack channel for approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as unread",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choose reply route based on trigger": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice Approved || Declined": {
+      "main": [
+        [
+          {
+            "node": "NetSuite VendorBill mock request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Choose reply route based on trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Invoice AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "Lsn7PHxFxyBHmXna"
+  },
+  "versionId": "c7593427-10e6-45fb-902b-1781e5760e6a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9fec1e4a4f8f6db1b2f4945b65f05ae927794e52c6a62a2922fe3b1c012927b2"
+  },
+  "id": "U7hyWrkezkw2RK7C",
+  "tags": []
+}

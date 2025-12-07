@@ -1,0 +1,72 @@
+{
+  "name": "Error handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        336,
+        64
+      ],
+      "id": "a589b630-c53d-4f09-939c-b9c4597bb6b8",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "n8n_errors",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={{ JSON.stringify({\n    \"blocks\": [\n      {\n        \"type\": \"header\",\n        \"text\": {\n          \"type\": \"plain_text\",\n          \"text\": \"🚨 Workflow Error - Technical Details\",\n          \"emoji\": true\n        }\n      },\n      {\n        \"type\": \"divider\"\n      },\n      {\n        \"type\": \"section\",\n        \"fields\": [\n          {\n            \"type\": \"mrkdwn\",\n            \"text\": `*Workflow:*\\n${$json.workflow.name}`\n          },\n          {\n            \"type\": \"mrkdwn\",\n            \"text\": `*Workflow ID:*\\n${$json.workflow.id}`\n          },\n          {\n            \"type\": \"mrkdwn\",\n            \"text\": `*Failed Node:*\\n${$json.execution.lastNodeExecuted}`\n          },\n          {\n            \"type\": \"mrkdwn\",\n            \"text\": `*Mode:*\\n${$json.execution.mode}`\n          }\n        ]\n      },\n      {\n        \"type\": \"divider\"\n      },\n      {\n        \"type\": \"section\",\n        \"text\": {\n          \"type\": \"mrkdwn\",\n          \"text\": `*Error Message:*\\n${$json.execution.error.message}`\n        }\n      },\n      {\n        \"type\": \"divider\"\n      },\n      {\n        \"type\": \"actions\",\n        \"elements\": [\n          {\n            \"type\": \"button\",\n            \"text\": {\n              \"type\": \"plain_text\",\n              \"text\": \"🔗 View Workflow in n8n\",\n              \"emoji\": true\n            },\n            \"url\": `https://malichi.app.n8n.cloud/workflow/${$json.workflow.id}`\n          }\n        ]\n      }\n    ]\n  }) }}\n",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        576,
+        64
+      ],
+      "id": "cdcf25e2-5dde-4777-b0c9-d3064b0f4818",
+      "name": "Alerting n8n_error channel",
+      "webhookId": "ce407fd1-31c1-40db-bd0e-becddb152ca7",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "HFAHHjLCYyGwNMuY",
+          "name": "My Slack"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Alerting n8n_error channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "4b8e0ce8-7f36-4f42-983d-cee5f46784e4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9fec1e4a4f8f6db1b2f4945b65f05ae927794e52c6a62a2922fe3b1c012927b2"
+  },
+  "id": "Lsn7PHxFxyBHmXna",
+  "tags": []
+}
