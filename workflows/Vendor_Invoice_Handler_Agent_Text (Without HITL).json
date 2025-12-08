@@ -31,7 +31,7 @@
         "simple": false,
         "filters": {
           "readStatus": "unread",
-          "sender": "yoavmalihi@gmail.com"
+          "sender": "mock@gmail.com"
         },
         "options": {
           "dataPropertyAttachmentsPrefixName": "attachment_",
